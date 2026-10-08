@@ -188,7 +188,7 @@ The default embedded connection is based on:
 jdbc:hsqldb:file:./SimulationServer/db-embedded/openroberta-db
 ```
 
-Default HSQL credentials configured by the application are `orA` / `Pid`. Do not expose the HSQL port publicly, and change credentials as part of any custom external-database deployment.
+The application expects the HSQL credentials `orA` / `Pid`; they are currently defined in `SimulationServer/src/main/resources/hibernate-cfg.xml` and are not exposed as supported runtime options. A separately managed HSQLDB service must therefore use the same credentials unless the application configuration is changed and rebuilt. Never expose the HSQL port publicly.
 
 ### Useful database commands
 
@@ -215,7 +215,7 @@ Only one process may open an embedded HSQLDB database at a time. Stop the server
 - Back up the **entire database directory** while the server is stopped. HSQLDB databases consist of multiple related files; copying only one file is not a valid backup.
 - Keep database backups outside the release directory before replacing or rolling back an installation.
 
-The scripts also support `-db-mode server`, but they do not provision or start a separate HSQLDB service. In that mode, an administrator must run HSQLDB independently and ensure the database name passed with `-db-name` is available at `jdbc:hsqldb:hsql://localhost/<database-name>`.
+The scripts also support `-db-mode server`, but this repository does not provision, start, secure, back up, or monitor a separate HSQLDB service. In that mode, an administrator must manage HSQLDB independently and ensure the database name passed with `-db-name` is available at `jdbc:hsqldb:hsql://localhost/<database-name>` using the application credentials described above. Embedded mode is the documented, self-contained deployment path for this repository.
 
 ## Development workflow
 
@@ -228,14 +228,16 @@ Start the server from a built checkout:
 The command automatically creates an empty embedded database when none exists. To pass a cross-compiler resource directory:
 
 ```bash
-./ora.sh start-from-git /absolute/path/to/ora-cc-rsc
+./ora.sh -oraccrsc /absolute/path/to/ora-cc-rsc start-from-git
 ```
 
 For remote JVM debugging:
 
 ```bash
-./ora.sh start-from-git -rdbg
+./ora.sh -rdbg start-from-git
 ```
+
+Options to `ora.sh` must appear before the command name.
 
 The debug listener uses port `2000` in the current scripts. Application logs and administration files are written below `./admin/` when `admin.sh -git-mode` is used; `ora.sh start-from-git` writes server logging to the console.
 
@@ -297,11 +299,15 @@ mvn clean install -DskipTests
 
 ### 3. Export a self-contained installation
 
-Choose a new or empty target directory:
+`ora.sh` must be able to write to the export directory. A normal build user usually cannot create a directory directly below `/opt`, so export to a temporary user-writable directory and move it into place:
 
 ```bash
-./ora.sh export /opt/makebot-simulator gzip
+release_dir="$(mktemp -d)"
+./ora.sh export "$release_dir" gzip
+sudo mv "$release_dir" /opt/makebot-simulator
 ```
+
+The final path `/opt/makebot-simulator` must not already contain another installation. For an update, export to a new versioned path and switch over only after backing up the database.
 
 The export contains:
 
@@ -403,7 +409,9 @@ Defaults are defined in `SimulationServer/src/main/resources/openRoberta.propert
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
+| `server.ip` | `0.0.0.0` | Network interface on which Jetty listens; use `127.0.0.1` when only a local reverse proxy should reach it |
 | `server.port` | `1999` | HTTP listener |
+| `server.public` | `false` | Controls behavior intended for a public Open Roberta-style instance |
 | `database.mode` | `embedded` | `embedded` or separately managed HSQLDB `server` mode |
 | `database.name` | `openroberta-db` | Database name |
 | `database.parentdir` | `./SimulationServer/db-embedded` in source defaults | Database directory |
@@ -415,11 +423,20 @@ The administration script supplies deployment-appropriate directory values. Addi
 
 ```bash
 ./admin.sh -Xmx2G start-server \
+  -d server.ip=127.0.0.1 \
   -d server.port=8080 \
   -d robot.crosscompiler.resourcebase=/opt/ora-cc-rsc
 ```
 
-Use absolute paths in production where possible. Review `openRoberta.properties` for mail, HTTPS, plugin, and other optional settings before enabling those features.
+Use absolute paths in production where possible. The default `server.ip=0.0.0.0` exposes Jetty on every network interface; override it with `127.0.0.1` when a reverse proxy on the same host is the only intended client.
+
+### Private and public instances
+
+The repository defaults to `server.public=false`. This is the appropriate default for a private installation and does not require configuring the upstream public-lab services.
+
+Before setting `server.public=true`, replace the upstream Open Roberta mail configuration in `SimulationServer/src/main/resources/openRoberta.properties`. In particular, configure `mail.smtp.auth`, `mail.smtp.starttls.enable`, `mail.smtp.host`, `mail.smtp.port`, `username`, and `password`, and review the activation/reset subjects and message templates so that URLs, branding, and support links refer to the deployed Makebot instance. These values may be changed in the properties file before the Maven build or supplied as `-d key=value` runtime arguments where appropriate. Public-mode deployments must also review the `server.iptocountry.dir` setting and provide its data file if that feature is required.
+
+Review the same properties file for HTTPS, plugins, robot whitelist/default, and other optional settings before enabling those features. TLS is normally terminated by an external web server; the bundled development keystore must not be used as a production certificate.
 
 ## Optional cross-compilers
 
