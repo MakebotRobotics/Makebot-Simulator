@@ -1,0 +1,13 @@
+
+(repeat [FOREVER_ARDU, BoolConst[value: true]]
+AktionStmt [ToneAction[frequency: NumConst[value: 300], duration: NumConst[value: 100], port: S]]
+AktionStmt [LedAction[port: L, mode: ON]]
+AktionStmt [RgbLedOnAction[port: R, colour: ColorConst[hexValue: #cc0000]]]
+AktionStmt [RgbLedOffAction[port: R]]
+AktionStmt [ShowTextAction[msg: StringConst[value: Hallo], x: NumConst[value: 0], y: NumConst[value: 1], port: O]]
+AktionStmt [ClearDisplayAction[port: O]]
+AktionStmt [PinWriteValueAction[pinValue: ANALOG, port: Aa, value: NumConst[value: 1]]]
+AktionStmt [PinWriteValueAction[pinValue: DIGITAL, port: Ad, value: NumConst[value: 1]]]
+AktionStmt [RelayAction[port: rel, mode: OFF]]
+AktionStmt [SerialWriteAction[value: StringConst[value: Hallo]]]
+)

@@ -1,0 +1,5 @@
+MethodCall [buttons, , , VOID]
+MethodCall [gesture, , , VOID]
+MethodCall [accelerometer, , , VOID]
+MethodCall [others, , , VOID]
+MethodCall [external, , , VOID]

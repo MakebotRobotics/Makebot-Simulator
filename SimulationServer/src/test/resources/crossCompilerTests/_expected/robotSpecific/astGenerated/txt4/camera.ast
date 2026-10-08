@@ -1,0 +1,4 @@
+MethodCall [ball, , , VOID]
+MethodCall [color, , , VOID]
+MethodCall [motion, , , VOID]
+MethodCall [line, , , VOID]

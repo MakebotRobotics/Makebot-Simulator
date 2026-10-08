@@ -1,0 +1,37 @@
+include: "classpath:/common.methods.yml"
+
+## FunctionNames
+
+DIFFDRIVEFOR:
+  PYTHON: |
+    def diffDriveFor(rpmL, rpmR, distance):
+        timeToWait = getTimeToWait(rpmL, rpmR, distance)
+        if distance < 0:
+            rpmL = -rpmL
+            rpmR = -rpmR
+        if _diffPortsSwapped:
+            mbot2.drive_speed(-rpmR, rpmL)
+        else:
+            mbot2.drive_speed(rpmL, -rpmR)
+        time.sleep(timeToWait)
+        mbot2.EM_stop()
+
+    def getTimeToWait(rpmL, rpmR, distance):
+        rpm = rpmL - (rpmL - rpmR) / 2 # motor rotations per minutes of the center of the robot
+        cmps = rpm * _circumference / 60 # cm per seconds of the center of the robot
+        if (cmps != 0):
+            return abs(distance / cmps)
+        else:
+            return 0
+
+RGBASSTRING:
+  PYTHON: |
+    def RGBAsString(rgb):
+        r, g, b = rgb
+        color_diffs = []
+        for color in _colors:
+            cr, cg, cb = _colors[color]
+            color_diff = math.sqrt(abs(r - cr)**2 + abs(g - cg)**2 + abs(b - cb)**2)
+            color_diffs.append((color_diff, color))
+        return min(color_diffs)[1]
+
