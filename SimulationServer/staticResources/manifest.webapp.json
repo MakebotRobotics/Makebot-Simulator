@@ -1,6 +1,6 @@
 {
-  "name": "Open Roberta Lab",
-  "short_name": "Open Roberta Lab",
+"name": "Makebot Robotics Solutions",
+"short_name": "Makebot Robotics Solutions",
   "version": "${openRobertaServer.version}",
   "description": "Roberta – Learning with Robots",
   "developer": {
