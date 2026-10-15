@@ -1455,6 +1455,22 @@ export class GyroSensor implements ISensor, IReset, IUpdateAction {
 }
 
 export class QuadRGBSensor implements ISensor, IDrawable, ILabel, IUpdateAction, IReset {
+    // These are the colour values returned by the mBuild Quad RGB API after
+    // Mbot2PythonVisitor maps its colour name to an RGB tuple. Keeping the
+    // simulator on that same palette makes a sensor-colour comparison use the
+    // same value type as a colour-picker block.
+    private static readonly MBUILD_COLOURS: number[][] = [
+        [204, 0, 0],
+        [255, 255, 0],
+        [51, 204, 0],
+        [51, 255, 255],
+        [51, 102, 255],
+        [204, 51, 204],
+        [255, 255, 255],
+        [0, 0, 0]
+    ];
+    private static readonly SLOTS: string[] = ['L1', 'L2', 'R1', 'R2'];
+
     readonly points: Point[];
     readonly port: string;
 
@@ -1704,31 +1720,12 @@ export class QuadRGBSensor implements ISensor, IDrawable, ILabel, IUpdateAction,
             const lightValue =
                 (red + green + blue) / 3 / 2.55;
 
-            /*
-             * -----------------------------------------------------
-             * ColorSensor logic: COLOUR
-             *
-             * This is the important part:
-             *
-             * RGB -> HSV -> SIMATH.getColor()
-             *
-             * We are deliberately using the same colour
-             * classification logic as ColorSensor.
-             * -----------------------------------------------------
-             */
-            const colorValue = SIMATH.getColor(
-                SIMATH.rgbToHsv(
-                    red,
-                    green,
-                    blue
-                )
-            );
+            // mBuild reports a named palette colour. The generated Python
+            // converts that name to an RGB tuple, so the simulator must return
+            // the corresponding tuple too for equality checks to work.
+            const colorValue = QuadRGBSensor.closestMbuildColour(red, green, blue);
 
-            /*
-             * Backend slot numbering is 1..4, whereas our
-             * JavaScript array index is 0..3.
-             */
-            const slot = String(i + 1);
+            const slot = QuadRGBSensor.SLOTS[i];
 
             /*
              * Store the outputs in the structure expected by
@@ -1758,6 +1755,16 @@ export class QuadRGBSensor implements ISensor, IDrawable, ILabel, IUpdateAction,
 
         values['line'][this.port]['left'] = leftLine;
         values['line'][this.port]['right'] = rightLine;
+    }
+
+    private static closestMbuildColour(red: number, green: number, blue: number): number[] {
+        return QuadRGBSensor.MBUILD_COLOURS.reduce((closest, colour) => {
+            const currentDistance =
+                (red - colour[0]) ** 2 + (green - colour[1]) ** 2 + (blue - colour[2]) ** 2;
+            const closestDistance =
+                (red - closest[0]) ** 2 + (green - closest[1]) ** 2 + (blue - closest[2]) ** 2;
+            return currentDistance < closestDistance ? colour : closest;
+        });
     }
 }
 
